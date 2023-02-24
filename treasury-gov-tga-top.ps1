@@ -1,8 +1,7 @@
 ﻿
-Param($date = (get-previous-weekday))
+# Param($date = (get-previous-weekday))
 
-function get-previous-weekday ()
-{
+Param($date = (&{
     $i = -1
 
     while ($true)
@@ -13,14 +12,78 @@ function get-previous-weekday ()
         }
         else
         {
-            return Get-Date (Get-Date).AddDays($i) -Format 'yyyy-MM-dd'
+            break
         }
     }    
-}
+    
+    Get-Date (Get-Date).AddDays($i) -Format 'yyyy-MM-dd'
+}))
+
+
+
+# function get-previous-weekday ()
+# {
+#     $i = -1
+
+#     while ($true)
+#     {
+#         if ('Saturday', 'Sunday' -contains (Get-Date).AddDays($i).DayOfWeek)
+#         {
+#             $i = $i - 1
+#         }
+#         else
+#         {
+#             return Get-Date (Get-Date).AddDays($i) -Format 'yyyy-MM-dd'
+#         }
+#     }    
+# }
+
+
+# (&{
+#     $i = -1
+
+#     while ($true)
+#     {
+#         if ('Saturday', 'Sunday' -contains (Get-Date).AddDays($i).DayOfWeek)
+#         {
+#             $i = $i - 1
+#         }
+#         else
+#         {
+#             break
+#         }
+#     }    
+    
+#     Get-Date (Get-Date).AddDays($i) -Format 'yyyy-MM-dd'
+# })
+
 
 $base = 'https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/dts'
 
 $result_raw = Invoke-RestMethod -Method Get -Uri ($base + '/dts_table_2?filter=record_date:eq:{0}&page[number]=1&page[size]=300' -f $date)
+
+
+$i = -1
+
+while ($true) 
+{
+    if ($result_raw.data.Count -eq 0)
+    {
+        Write-Host ('No data found for {0}. Trying earlier date.' -f $date) -ForegroundColor Yellow
+
+        $date = Get-Date (Get-Date $date).AddDays($i) -Format 'yyyy-MM-dd'
+      
+        $result_raw = Invoke-RestMethod -Method Get -Uri ($base + '/dts_table_2?filter=record_date:eq:{0}&page[number]=1&page[size]=300' -f $date)
+
+        $i = $i - 1
+    }
+    else
+    {
+        break
+    }
+}
+
+
 
 foreach ($row in $result_raw.data)
 {
@@ -49,4 +112,4 @@ exit
 
 .\treasury-gov-tga-top.ps1               # Default to previous weekday
 
-.\treasury-gov-tga-top.ps1 '2023-02-01'  # Specify date
+.\treasury-gov-tga-top.ps1 '2023-02-23'  # Specify date
