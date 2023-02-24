@@ -1,25 +1,25 @@
 ﻿
 # Param($date = (get-previous-weekday))
 
-Param($date = (&{
-    $i = -1
+# Param($date = (&{
+#     $i = -1
 
-    while ($true)
-    {
-        if ('Saturday', 'Sunday' -contains (Get-Date).AddDays($i).DayOfWeek)
-        {
-            $i = $i - 1
-        }
-        else
-        {
-            break
-        }
-    }    
+#     while ($true)
+#     {
+#         if ('Saturday', 'Sunday' -contains (Get-Date).AddDays($i).DayOfWeek)
+#         {
+#             $i = $i - 1
+#         }
+#         else
+#         {
+#             break
+#         }
+#     }    
     
-    Get-Date (Get-Date).AddDays($i) -Format 'yyyy-MM-dd'
-}))
+#     Get-Date (Get-Date).AddDays($i) -Format 'yyyy-MM-dd'
+# }))
 
-
+Param($date)
 
 # function get-previous-weekday ()
 # {
@@ -37,6 +37,24 @@ Param($date = (&{
 #         }
 #     }    
 # }
+
+
+function get-previous-weekday ()
+{
+    $i = -1
+
+    while ((Get-Date).AddDays($i).DayOfWeek -in 'Saturday', 'Sunday')
+    {
+        $i = $i - 1
+    }    
+
+    Get-Date (Get-Date).AddDays($i) -Format 'yyyy-MM-dd'
+}
+
+if ($date -eq $null)
+{
+    $date = get-previous-weekday
+}
 
 
 # (&{
