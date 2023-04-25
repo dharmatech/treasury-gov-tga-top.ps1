@@ -61,8 +61,114 @@ Write-Host 'DEPOSITS' -NoNewline
 '' +
 'WITHDRAWALS' +
 ($result_raw.data | Where-Object transaction_type -EQ Withdrawals | Sort-Object transaction_today_amt -Descending | Select-Object -First 15) | ft $fields
-
+# ----------------------------------------------------------------------
 exit
+# ----------------------------------------------------------------------
+
+function chart-deposits ()
+{
+    $deposits = $result_raw.data | Where-Object transaction_type -EQ Deposits | Where-Object transaction_catg -NotIn ('null', 'Sub-Total Deposits', 'Public Debt Cash Issues (Table IIIB)') | Sort-Object transaction_today_amt -Descending
+
+    $table = $deposits | Select-Object -First 10
+    
+    $json = @{
+        chart = @{
+            type = 'doughnut'
+            data = @{
+                labels = $table.ForEach({ $_.transaction_catg })
+                datasets = @(
+                    @{ 
+                        data = $table.ForEach({ $_.transaction_today_amt }) 
+                        backgroundColor = @("#4E79A7"
+                                            "#F28E2B"
+                                            "#E15759"
+                                            "#76B7B2"
+                                            "#59A14F"
+                                            "#EDC948"
+                                            "#B07AA1"
+                                            "#FF9DA7"
+                                            "#9C755F"
+                                            "#BAB0AC")
+                    }
+    
+                )
+            }
+            options = @{
+                
+                title = @{ display = $true; text = ('TGA deposits (excluding public debt) {0} ' -f $deposits[0].record_date) }
+    
+                legend = @{ position = 'left' }
+    
+                plugins = @{
+                    datalabels = @{ display = $true }
+                }
+            }
+        }
+    } | ConvertTo-Json -Depth 100
+    
+    $result = Invoke-RestMethod -Method Post -Uri 'https://quickchart.io/chart/create' -Body $json -ContentType 'application/json'
+    
+    # Start-Process $result.url
+    
+    $id = ([System.Uri] $result.url).Segments[-1]
+    
+    Start-Process ('https://quickchart.io/chart-maker/view/{0}' -f $id)
+}
+# ----------------------------------------------------------------------
+function chart-withdrawals ()
+{
+    $withdrawals = $result_raw.data | Where-Object transaction_type -EQ Withdrawals | Where-Object transaction_catg -NotIn ('null', 'Sub-Total Withdrawals', 'Public Debt Cash Redemp. (Table IIIB)') | Sort-Object transaction_today_amt -Descending
+    
+    $table = $withdrawals | Select-Object -First 10
+    
+    $json = @{
+        chart = @{
+            type = 'doughnut'
+            data = @{
+                labels = $table.ForEach({ $_.transaction_catg })
+                datasets = @(
+                    @{ 
+                        data = $table.ForEach({ $_.transaction_today_amt }) 
+                        backgroundColor = @("#4E79A7"
+                                            "#F28E2B"
+                                            "#E15759"
+                                            "#76B7B2"
+                                            "#59A14F"
+                                            "#EDC948"
+                                            "#B07AA1"
+                                            "#FF9DA7"
+                                            "#9C755F"
+                                            "#BAB0AC")
+                    }
+    
+                )
+            }
+            options = @{
+                
+                title = @{ display = $true; text = ('TGA withdrawals (excluding public debt) {0} ' -f $deposits[0].record_date) }
+    
+                legend = @{ position = 'left' }
+    
+                plugins = @{
+                    datalabels = @{ display = $true }
+                }
+            }
+        }
+    } | ConvertTo-Json -Depth 100
+    
+    $result = Invoke-RestMethod -Method Post -Uri 'https://quickchart.io/chart/create' -Body $json -ContentType 'application/json'
+    
+    # Start-Process $result.url
+    
+    $id = ([System.Uri] $result.url).Segments[-1]
+    
+    Start-Process ('https://quickchart.io/chart-maker/view/{0}' -f $id)
+}
+# ----------------------------------------------------------------------
+
+$deposits | Select-Object -First 10 | ConvertTo-Html $fields > C:\temp\out.html
+
+Start-Process C:\temp\out.html
 
 # ----------------------------------------------------------------------
 # Example invocation
@@ -70,3 +176,269 @@ exit
 .\treasury-gov-tga-top.ps1               # Default to previous weekday
 
 .\treasury-gov-tga-top.ps1 '2023-02-23'  # Specify date
+
+# ----------------------------------------------------------------------
+
+($result_raw.data | Where-Object transaction_type -EQ Withdrawals | Sort-Object transaction_today_amt -Descending | Select-Object -First 15) | ft $fields
+
+$result_raw.data | ft $fields
+
+$result_raw.data[0]
+
+$obj = [PSCustomObject]@{ abc = [decimal] 123 }
+
+$objs = @(
+    [PSCustomObject]@{ abc = [decimal] 123 }
+    [PSCustomObject]@{ abc = [decimal] 2345 }
+    [PSCustomObject]@{ abc = [decimal] 34567 }
+)
+
+$objs | ft *
+
+$objs | ft @{ Label = 'abc'; Expression = { $_.abc.ToString() } }
+
+$objs | ft @{ Expression = 'abc'; FormatString = 'N0' }
+
+
+
+
+# ----------------------------------------------------------------------
+
+$property = 'transaction_fytd_amt'
+$count = 30
+
+function chart-deposits-fytd ([ValidateSet('transaction_today_amt', 'transaction_mtd_amt', 'transaction_fytd_amt')]$property, $count = 10)
+{
+    $deposits = $result_raw.data | 
+        Where-Object transaction_type -EQ Deposits | 
+        Where-Object transaction_catg -NotIn ('null', 'Sub-Total Deposits', 'Public Debt Cash Issues (Table IIIB)') | 
+        Sort-Object $property -Descending
+
+    $table = $deposits | Select-Object -First $count
+    
+    $json = @{
+        chart = @{
+            type = 'doughnut'
+            data = @{
+                labels = $table.ForEach({ $_.transaction_catg })
+                datasets = @(
+                    @{ 
+                        # data = $table.ForEach({ ($_.$property / 1000) }) 
+                        # data = $table.ForEach({ ($_.$property / 1000).ToString('N0') }) 
+                        data = $table.ForEach({ [math]::Round($_.$property / 1000, 0) }) 
+                        backgroundColor = @("#4E79A7"
+                                            "#F28E2B"
+                                            "#E15759"
+                                            "#76B7B2"
+                                            "#59A14F"
+                                            "#EDC948"
+                                            "#B07AA1"
+                                            "#FF9DA7"
+                                            "#9C755F"
+                                            "#BAB0AC"
+                                            
+                                            "#4E79A7"
+                                            "#F28E2B"
+                                            "#E15759"
+                                            "#76B7B2"
+                                            "#59A14F"
+                                            "#EDC948"
+                                            "#B07AA1"
+                                            "#FF9DA7"
+                                            "#9C755F"
+                                            "#BAB0AC"                                            
+                                            )
+                    }
+    
+                )
+            }
+            options = @{
+                
+                title = @{ display = $true; text = ('TGA deposits (excluding public debt) : {1} {0} ' -f $deposits[0].record_date, $property) }
+    
+                legend = @{ position = 'left' }
+    
+                plugins = @{
+                    datalabels = @{ display = $true }
+                }
+            }
+        }
+    } | ConvertTo-Json -Depth 100
+    
+    $result = Invoke-RestMethod -Method Post -Uri 'https://quickchart.io/chart/create' -Body $json -ContentType 'application/json'
+    
+    # Start-Process $result.url
+    
+    $id = ([System.Uri] $result.url).Segments[-1]
+    
+    Start-Process ('https://quickchart.io/chart-maker/view/{0}' -f $id)
+}
+
+chart-deposits-fytd transaction_fytd_amt
+
+chart-deposits-fytd transaction_fytd_amt -count 30
+
+
+
+function chart-withdrawals ([ValidateSet('transaction_today_amt', 'transaction_mtd_amt', 'transaction_fytd_amt')]$property, $count = 10)
+{
+    $withdrawals = $result_raw.data | 
+        Where-Object transaction_type -EQ Withdrawals | 
+        Where-Object transaction_catg -NotIn ('null', 'Sub-Total Withdrawals', 'Public Debt Cash Redemp. (Table IIIB)') | 
+        Sort-Object $property -Descending
+    
+    $table = $withdrawals | Select-Object -First $count
+    
+    $json = @{
+        chart = @{
+            type = 'doughnut'
+            data = @{
+                labels = $table.ForEach({ $_.transaction_catg })
+                datasets = @(
+                    @{ 
+                        # data = $table.ForEach({ $_.$property }) 
+                        data = $table.ForEach({ [math]::Round($_.$property / 1000, 0) }) 
+                        backgroundColor = @("#4E79A7"
+                                            "#F28E2B"
+                                            "#E15759"
+                                            "#76B7B2"
+                                            "#59A14F"
+                                            "#EDC948"
+                                            "#B07AA1"
+                                            "#FF9DA7"
+                                            "#9C755F"
+                                            "#BAB0AC"
+                                            
+                                            "#4E79A7"
+                                            "#F28E2B"
+                                            "#E15759"
+                                            "#76B7B2"
+                                            "#59A14F"
+                                            "#EDC948"
+                                            "#B07AA1"
+                                            "#FF9DA7"
+                                            "#9C755F"
+                                            "#BAB0AC"
+
+                                            "#4E79A7"
+                                            "#F28E2B"
+                                            "#E15759"
+                                            "#76B7B2"
+                                            "#59A14F"
+                                            "#EDC948"
+                                            "#B07AA1"
+                                            "#FF9DA7"
+                                            "#9C755F"
+                                            "#BAB0AC"
+                                            )
+                    }
+    
+                )
+            }
+            options = @{
+                
+                title = @{ display = $true; text = ('TGA withdrawals (excluding public debt) {1} {0} ' -f $withdrawals[0].record_date, $property) }
+    
+                legend = @{ position = 'left' }
+    
+                plugins = @{
+                    datalabels = @{ display = $true }
+                }
+            }
+        }
+    } | ConvertTo-Json -Depth 100
+    
+    $result = Invoke-RestMethod -Method Post -Uri 'https://quickchart.io/chart/create' -Body $json -ContentType 'application/json'
+    
+    # Start-Process $result.url
+    
+    $id = ([System.Uri] $result.url).Segments[-1]
+    
+    Start-Process ('https://quickchart.io/chart-maker/view/{0}' -f $id)
+}
+
+chart-withdrawals transaction_fytd_amt 30
+# ----------------------------------------------------------------------
+function chart (
+    [ValidateSet('Deposits', 'Withdrawals')]$type,
+    [ValidateSet('transaction_today_amt', 'transaction_mtd_amt', 'transaction_fytd_amt')]$property = 'transaction_today_amt', 
+    $count = 10)
+{
+    $items = $result_raw.data | 
+        Where-Object transaction_type -EQ $type | 
+        Where-Object transaction_catg -NotIn ('null', 'Sub-Total Withdrawals', 'Public Debt Cash Redemp. (Table IIIB)', 'Sub-Total Deposits', 'Public Debt Cash Issues (Table IIIB)') | 
+        Sort-Object $property -Descending
+    
+    $table = $items | Select-Object -First $count
+    
+    $json = @{
+        chart = @{
+            type = 'doughnut'
+            data = @{
+                labels = $table.ForEach({ $_.transaction_catg })
+                datasets = @(
+                    @{ 
+                        # data = $table.ForEach({ $_.$property }) 
+                        data = $table.ForEach({ [math]::Round($_.$property / 1000, 1) }) 
+                        backgroundColor = @("#4E79A7"
+                                            "#F28E2B"
+                                            "#E15759"
+                                            "#76B7B2"
+                                            "#59A14F"
+                                            "#EDC948"
+                                            "#B07AA1"
+                                            "#FF9DA7"
+                                            "#9C755F"
+                                            "#BAB0AC"
+                                            
+                                            "#4E79A7"
+                                            "#F28E2B"
+                                            "#E15759"
+                                            "#76B7B2"
+                                            "#59A14F"
+                                            "#EDC948"
+                                            "#B07AA1"
+                                            "#FF9DA7"
+                                            "#9C755F"
+                                            "#BAB0AC"
+
+                                            "#4E79A7"
+                                            "#F28E2B"
+                                            "#E15759"
+                                            "#76B7B2"
+                                            "#59A14F"
+                                            "#EDC948"
+                                            "#B07AA1"
+                                            "#FF9DA7"
+                                            "#9C755F"
+                                            "#BAB0AC"
+                                            )
+                    }
+    
+                )
+            }
+            options = @{
+                
+                title = @{ display = $true; text = ('TGA {2} (excluding public debt) {1} billions USD : {0} ' -f $items[0].record_date, $property, $type) }
+    
+                legend = @{ position = 'left' }
+    
+                plugins = @{
+                    datalabels = @{ display = $true }
+                }
+            }
+        }
+    } | ConvertTo-Json -Depth 100
+    
+    $result = Invoke-RestMethod -Method Post -Uri 'https://quickchart.io/chart/create' -Body $json -ContentType 'application/json'
+    
+    # Start-Process $result.url
+    
+    $id = ([System.Uri] $result.url).Segments[-1]
+    
+    Start-Process ('https://quickchart.io/chart-maker/view/{0}' -f $id)
+}
+
+chart Deposits -count 30
+
+chart Deposits transaction_fytd_amt 20
