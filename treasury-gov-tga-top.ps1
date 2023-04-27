@@ -1,5 +1,5 @@
 ﻿
-Param($date, $html)
+Param($date, [switch]$html)
 
 function get-previous-weekday ()
 {
@@ -151,12 +151,6 @@ chart Withdrawals -count 30
 
 # chart Deposits transaction_fytd_amt 20
 # ----------------------------------------------------------------------
-exit
-# ----------------------------------------------------------------------
-
-chart Deposits    transaction_fytd_amt 30
-chart Withdrawals transaction_fytd_amt 30
-# ----------------------------------------------------------------------
 # html-tag
 # ----------------------------------------------------------------------
 function html-tag ($tag_name, $children, $attrs)
@@ -255,7 +249,7 @@ function generate-table ($items)
             }
         ))),
         (h-tbody @(
-            foreach ($row in $deposits)
+            foreach ($row in $items)
             {
                 h-tr `
                     (h-td $row.record_date),
@@ -271,8 +265,8 @@ function generate-table ($items)
 
 if ($html)
 {
-    $deposits    = ($result_raw.data | Where-Object transaction_type -EQ Deposits    | Sort-Object transaction_today_amt -Descending | Select-Object -First 15)
-    $withdrawals = ($result_raw.data | Where-Object transaction_type -EQ Withdrawals | Sort-Object transaction_today_amt -Descending | Select-Object -First 15)
+    $deposits    = ($result_raw.data | Where-Object transaction_type -EQ Deposits    | Sort-Object transaction_today_amt -Descending)
+    $withdrawals = ($result_raw.data | Where-Object transaction_type -EQ Withdrawals | Sort-Object transaction_today_amt -Descending)
     # $deposits | ft $fields
  
  
@@ -281,3 +275,9 @@ if ($html)
     (h-h3 'Withdrawals') + 
     (generate-table $withdrawals) > .\treasury-gov-tga-top-partial.html
 }
+# ----------------------------------------------------------------------
+exit
+# ----------------------------------------------------------------------
+
+chart Deposits    transaction_fytd_amt 30
+chart Withdrawals transaction_fytd_amt 30
