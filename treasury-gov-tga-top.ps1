@@ -1,5 +1,5 @@
 ﻿
-Param($date, [switch]$html)
+Param($date, [switch]$html, [switch]$data, [switch]$charts = $false)
 
 function get-previous-weekday ()
 {
@@ -48,19 +48,52 @@ foreach ($row in $result_raw.data)
     $row.transaction_today_amt = [decimal]$row.transaction_today_amt
     $row.transaction_mtd_amt   = [decimal]$row.transaction_mtd_amt    
 }
+# ----------------------------------------------------------------------
+if ($data) { $result_raw.data; exit }
+# ----------------------------------------------------------------------
+# $fields = @('record_date', 
+#     # 'transaction_type',
+#     'transaction_catg',
+#     # 'transaction_catg_desc', 
+#     'transaction_today_amt', 'transaction_mtd_amt', 'transaction_fytd_amt')
 
-$fields = @('record_date', 
-    # 'transaction_type',
-    'transaction_catg',
-    # 'transaction_catg_desc', 
-    'transaction_today_amt', 'transaction_mtd_amt', 'transaction_fytd_amt')
-    
+$fields = @(
+    'record_date'
+    'transaction_catg'
+    @{ Expression = 'transaction_today_amt'; Format = 'N0'}
+    @{ Expression = 'transaction_mtd_amt';   Format = 'N0'}
+    @{ Expression = 'transaction_fytd_amt';  Format = 'N0'}
+)
+
 Write-Host
 Write-Host 'DEPOSITS' -NoNewline
 ($result_raw.data | Where-Object transaction_type -EQ Deposits    | Sort-Object transaction_today_amt -Descending | Select-Object -First 15) +
 '' +
 'WITHDRAWALS' +
 ($result_raw.data | Where-Object transaction_type -EQ Withdrawals | Sort-Object transaction_today_amt -Descending | Select-Object -First 15) | ft $fields
+# ----------------------------------------------------------------------
+$public_debt_issues      = [decimal]($result_raw.data | Where-Object transaction_catg -EQ 'Public Debt Cash Issues (Table IIIB)' )[0].transaction_today_amt
+$public_debt_redemptions = [decimal]($result_raw.data | Where-Object transaction_catg -EQ 'Public Debt Cash Redemp. (Table IIIB)')[0].transaction_today_amt
+
+$public_debt_change = $public_debt_issues - $public_debt_redemptions
+
+
+# ----------------------------------------------------------------------
+$sub_total_deposits    = [decimal]($result_raw.data | Where-Object transaction_catg -EQ 'Sub-Total Deposits' )[0].transaction_today_amt
+$sub_total_withdrawals = [decimal]($result_raw.data | Where-Object transaction_catg -EQ 'Sub-Total Withdrawals')[0].transaction_today_amt
+
+$sub_total_change = $sub_total_deposits - $sub_total_withdrawals
+
+
+# ----------------------------------------------------------------------
+$total_deposits    = ($result_raw.data | Where-Object transaction_type -EQ Deposits    | Where-Object transaction_catg -EQ 'null')[0].transaction_today_amt
+$total_withdrawals = ($result_raw.data | Where-Object transaction_type -EQ Withdrawals | Where-Object transaction_catg -EQ 'null')[0].transaction_today_amt
+
+$total_change = $total_deposits - $total_withdrawals
+
+Write-Host ('Public debt change:     {0,10:N0}' -f $public_debt_change) -ForegroundColor Yellow
+Write-Host ('Deposits - withdrawals: {0,10:N0}' -f $sub_total_change) -ForegroundColor Yellow
+Write-Host ('Total change:           {0,10:N0}' -f $total_change) -ForegroundColor Yellow
 # ----------------------------------------------------------------------
 # chart
 # ----------------------------------------------------------------------
@@ -144,8 +177,12 @@ function chart (
     Start-Process ('https://quickchart.io/chart-maker/view/{0}' -f $id)
 }
 
-chart Deposits    -count 30
-chart Withdrawals -count 30
+if ($charts)
+{
+    chart Deposits    -count 30
+    chart Withdrawals -count 30
+}
+
 
 # chart Deposits -count 30
 
@@ -278,6 +315,75 @@ if ($html)
 # ----------------------------------------------------------------------
 exit
 # ----------------------------------------------------------------------
+.\treasury-gov-tga-top.ps1 -date '2023-01-24'
+.\treasury-gov-tga-top.ps1 -date '2023-04-18'
+.\treasury-gov-tga-top.ps1 -date '2023-05-02'
+
+
 
 chart Deposits    transaction_fytd_amt 30
 chart Withdrawals transaction_fytd_amt 30
+
+
+
+
+Write-Host
+Write-Host 'DEPOSITS' -NoNewline
+($result_raw.data | Where-Object transaction_type -EQ Deposits    | Sort-Object transaction_today_amt -Descending | Select-Object -First 20) +
+'' +
+'WITHDRAWALS' +
+($result_raw.data | Where-Object transaction_type -EQ Withdrawals | Sort-Object transaction_today_amt -Descending | Select-Object -First 20) | ft $fields
+
+
+
+
+
+# ----------------------------------------------------------------------
+Write-Host
+Write-Host 'DEPOSITS' -NoNewline
+($result_raw.data | Where-Object transaction_type -EQ Deposits    | Sort-Object transaction_today_amt -Descending | Select-Object -First 15) +
+'' +
+'WITHDRAWALS' +
+($result_raw.data | Where-Object transaction_type -EQ Withdrawals | Sort-Object transaction_today_amt -Descending | Select-Object -First 15) | ft $fields
+
+
+
+
+($result_raw.data | Where-Object transaction_type -EQ Deposits    | Sort-Object transaction_today_amt -Descending | Select-Object -First 15) | ft $fields
+($result_raw.data | Where-Object transaction_type -EQ Withdrawals | Sort-Object transaction_today_amt -Descending | Select-Object -First 15) | ft $fields
+
+
+
+
+
+Write-Host 'DEPOSITS' -NoNewline
+($result_raw.data | Where-Object transaction_type -EQ Deposits    | Sort-Object transaction_fytd_amt -Descending | Select-Object -First 15) +
+'' +
+'WITHDRAWALS' +
+($result_raw.data | Where-Object transaction_type -EQ Withdrawals | Sort-Object transaction_fytd_amt -Descending | Select-Object -First 15) | ft $fields
+
+
+
+
+# ----------------------------------------------------------------------
+$base = 'https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/dts'
+
+# $rest_url = '/dts_table_2?filter=record_date:gte:{0},transaction_catg:eq:{1}&page[number]=1&page[size]=300'
+
+$rest_url = '/dts_table_2?filter=record_date:gte:{0},transaction_catg:eq:{1},transaction_catg_desc:eq:{2}&page[number]=1&page[size]=300'
+
+# $rest_url = '/dts_table_2?filter=record_date:gte:{0},transaction_catg:eq:{1},transaction_today_amt:gte:{2}&fields=record_date,transaction_type,transaction_catg,transaction_today_amt&page[number]=1&page[size]=900'
+
+$result_raw = Invoke-RestMethod -Method Get -Uri ($base + $rest_url -f '2020-01-01', 'Other Withdrawals', 'Military Retirement (EFT)')
+
+
+
+@(
+    'record_date:gte:{0}'           -f '2020-01-01'
+    'transaction_catg:eq:{0}'       -f 'Other Withdrawals'
+    'transaction_catg_desc:eq:{0}'  -f 'Military Retirement (EFT)'
+) -join ','
+
+$result_raw
+
+
