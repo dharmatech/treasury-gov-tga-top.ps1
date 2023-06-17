@@ -1,5 +1,5 @@
 ﻿
-Param($date, [switch]$html, [switch]$data, [switch]$charts = $false)
+Param($date, [switch]$data, [switch]$charts = $false)
 
 function get-previous-weekday ()
 {
@@ -192,135 +192,10 @@ if ($charts)
     chart Withdrawals -count 30
 }
 
-
 # chart Deposits -count 30
 
 # chart Deposits transaction_fytd_amt 20
-# ----------------------------------------------------------------------
-# html-tag
-# ----------------------------------------------------------------------
-function html-tag ($tag_name, $children, $attrs)
-{
-    $tag = if ($attrs -eq $null)
-    {
-        '<{0}>' -f $tag_name
-    }
-    else
-    {
-        $result = foreach ($item in $attrs.GetEnumerator())
-        {
-            '{0}="{1}"' -f $item.Name, $item.Value
-        }
-        
-        '<{0} {1}>' -f $tag_name, ($result -join ' ')
-    }
 
-    $close = '</{0}>' -f $tag_name
-
-    if ($children -eq $null)
-    {
-        $tag
-        $close
-    }
-    elseif ($children.GetType().Name -eq 'Object[]')
-    {
-        $tag
-        foreach ($child in $children)
-        {
-            $child
-        }
-        $close
-    }
-    elseif ($children.GetType().Name -eq 'String')
-    {
-        $tag
-        $children
-        $close
-    }
-    else
-    {
-        $tag
-        $children
-        $close
-    }
-}
-
-function h-h1 ($children, $attrs) { html-tag 'h1' $children $attrs }
-function h-h2 ($children, $attrs) { html-tag 'h2' $children $attrs }
-function h-h3 ($children, $attrs) { html-tag 'h3' $children $attrs }
-
-function h-table ($children, $attrs) { html-tag 'table' $children $attrs }
-function h-thead ($children, $attrs) { html-tag 'thead' $children $attrs }
-function h-tbody ($children, $attrs) { html-tag 'tbody' $children $attrs }
-function h-th ($children, $attrs) { html-tag 'th' $children $attrs }
-function h-tr ($children, $attrs) { html-tag 'tr' $children $attrs }
-function h-td ($children, $attrs) { html-tag 'td' $children $attrs }
-# ----------------------------------------------------------------------
-# html
-# ----------------------------------------------------------------------
-# if ($html)
-# {
-#     $deposits = ($result_raw.data | Where-Object transaction_type -EQ Deposits | Sort-Object transaction_today_amt -Descending | Select-Object -First 15)
-
-#     # $deposits | ft $fields
-            
-#     h-table -attrs @{ class = 'table table-sm'; 'data-toggle' = 'table'; 'data-height' = '500'} -children `
-#         (h-thead (h-tr @(
-#             foreach ($elt in 'record_date', 'transaction_catg', 'transaction_today_amt', 'transaction_mtd_amt', 'transaction_fytd_amt')
-#             {
-#                 h-th $elt @{ scope='col' }
-#             }
-#         ))),
-#         (h-tbody @(
-#             foreach ($row in $deposits)
-#             {
-#                 h-tr `
-#                     (h-td $row.record_date),
-#                     (h-td $row.transaction_catg),
-#                     (h-td $row.transaction_today_amt.ToString('N0') @{ class='text-end' }),
-#                     (h-td $row.transaction_mtd_amt   @{ class='text-end' }),
-#                     (h-td $row.transaction_fytd_amt  @{ class='text-end' })
-#             }
-#         )) > .\treasury-gov-tga-top-partial.html
-# }
-
-
-function generate-table ($items)
-{
-    h-table -attrs @{ class = 'table table-sm'; 'data-toggle' = 'table'; 'data-height' = '400'} -children `
-        (h-thead (h-tr @(
-            foreach ($elt in 'record_date', 'transaction_catg', 'transaction_today_amt', 'transaction_mtd_amt', 'transaction_fytd_amt')
-            {
-                h-th $elt @{ scope='col' }
-            }
-        ))),
-        (h-tbody @(
-            foreach ($row in $items)
-            {
-                h-tr `
-                    (h-td $row.record_date),
-                    (h-td $row.transaction_catg),
-                    (h-td $row.transaction_today_amt.ToString('N0') @{ class='text-end' }),
-                    (h-td $row.transaction_mtd_amt.ToString('N0')   @{ class='text-end' }),
-                    (h-td $row.transaction_fytd_amt.ToString('N0')  @{ class='text-end' })
-            }
-        ))
-}
-
-
-
-if ($html)
-{
-    $deposits    = ($result_raw.data | Where-Object transaction_type -EQ Deposits    | Sort-Object transaction_today_amt -Descending)
-    $withdrawals = ($result_raw.data | Where-Object transaction_type -EQ Withdrawals | Sort-Object transaction_today_amt -Descending)
-    # $deposits | ft $fields
- 
- 
-    (h-h3 'Deposits') + 
-    (generate-table $deposits) + 
-    (h-h3 'Withdrawals') + 
-    (generate-table $withdrawals) > .\treasury-gov-tga-top-partial.html
-}
 # ----------------------------------------------------------------------
 exit
 # ----------------------------------------------------------------------
