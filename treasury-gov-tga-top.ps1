@@ -91,9 +91,18 @@ $total_withdrawals = ($result_raw.data | Where-Object transaction_type -EQ Withd
 
 $total_change = $total_deposits - $total_withdrawals
 
-Write-Host ('Public debt change:     {0,10:N0}' -f $public_debt_change) -ForegroundColor Yellow
-Write-Host ('Deposits - withdrawals: {0,10:N0}' -f $sub_total_change) -ForegroundColor Yellow
-Write-Host ('Total change:           {0,10:N0}' -f $total_change) -ForegroundColor Yellow
+
+function val-to-color ($val)
+{
+    if     ($val -gt 0) { 'Green' }
+    elseif ($val -lt 0) { 'Red'   }
+    else                { 'White' }
+}
+
+Write-Host 'Public debt change:     ' -ForegroundColor Yellow -NoNewline;    Write-Host ('{0,10:N0}' -f $public_debt_change) -ForegroundColor (val-to-color $public_debt_change)
+Write-Host 'Deposits - withdrawals: ' -ForegroundColor Yellow -NoNewline;    Write-Host ('{0,10:N0}' -f $sub_total_change  ) -ForegroundColor (val-to-color $sub_total_change)
+Write-Host 'Total change:           ' -ForegroundColor Yellow -NoNewline;    Write-Host ('{0,10:N0}' -f $total_change      ) -ForegroundColor (val-to-color $total_change)
+
 # ----------------------------------------------------------------------
 # chart
 # ----------------------------------------------------------------------
