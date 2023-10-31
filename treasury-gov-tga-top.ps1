@@ -83,10 +83,10 @@ $public_debt_change = $public_debt_issues - $public_debt_redemptions
 
 
 # ----------------------------------------------------------------------
-$sub_total_deposits    = [decimal]($result_raw.data | Where-Object transaction_catg -EQ 'Sub-Total Deposits' )[0].transaction_today_amt
-$sub_total_withdrawals = [decimal]($result_raw.data | Where-Object transaction_catg -EQ 'Sub-Total Withdrawals')[0].transaction_today_amt
+# $sub_total_deposits    = [decimal]($result_raw.data | Where-Object transaction_catg -EQ 'Sub-Total Deposits' )[0].transaction_today_amt
+# $sub_total_withdrawals = [decimal]($result_raw.data | Where-Object transaction_catg -EQ 'Sub-Total Withdrawals')[0].transaction_today_amt
 
-$sub_total_change = $sub_total_deposits - $sub_total_withdrawals
+# $sub_total_change = $sub_total_deposits - $sub_total_withdrawals
 
 
 # ----------------------------------------------------------------------
@@ -104,7 +104,7 @@ function val-to-color ($val)
 }
 
 Write-Host 'Public debt change:     ' -ForegroundColor Yellow -NoNewline;    Write-Host ('{0,10:N0}' -f $public_debt_change) -ForegroundColor (val-to-color $public_debt_change)
-Write-Host 'Deposits - withdrawals: ' -ForegroundColor Yellow -NoNewline;    Write-Host ('{0,10:N0}' -f $sub_total_change  ) -ForegroundColor (val-to-color $sub_total_change)
+# Write-Host 'Deposits - withdrawals: ' -ForegroundColor Yellow -NoNewline;    Write-Host ('{0,10:N0}' -f $sub_total_change  ) -ForegroundColor (val-to-color $sub_total_change)
 Write-Host 'Total change:           ' -ForegroundColor Yellow -NoNewline;    Write-Host ('{0,10:N0}' -f $total_change      ) -ForegroundColor (val-to-color $total_change)
 
 # ----------------------------------------------------------------------
