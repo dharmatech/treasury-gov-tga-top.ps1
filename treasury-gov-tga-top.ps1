@@ -20,7 +20,11 @@ if ($date -eq $null)
 # ----------------------------------------------------------------------
 $base = 'https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/dts'
 
-$result_raw = Invoke-RestMethod -Method Get -Uri ($base + '/dts_table_2?filter=record_date:eq:{0}&page[number]=1&page[size]=300' -f $date)
+# $result_raw = Invoke-RestMethod -Method Get -Uri ($base + '/dts_table_2?filter=record_date:eq:{0}&page[number]=1&page[size]=300' -f $date)
+
+$result_raw = Invoke-RestMethod -Method Get -Uri ($base + '/deposits_withdrawals_operating_cash?filter=record_date:eq:{0}&page[number]=1&page[size]=300' -f $date)
+
+# /v1/accounting/dts/deposits_withdrawals_operating_cash
 # ----------------------------------------------------------------------
 $i = -1
 
@@ -32,7 +36,7 @@ while ($true)
 
         $date = Get-Date (Get-Date $date).AddDays($i) -Format 'yyyy-MM-dd'
       
-        $result_raw = Invoke-RestMethod -Method Get -Uri ($base + '/dts_table_2?filter=record_date:eq:{0}&page[number]=1&page[size]=300' -f $date)
+        $result_raw = Invoke-RestMethod -Method Get -Uri ($base + '/deposits_withdrawals_operating_cash?filter=record_date:eq:{0}&page[number]=1&page[size]=300' -f $date)
 
         $i = $i - 1
     }
